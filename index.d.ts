@@ -47,6 +47,12 @@ export interface RollupPluginGlobSyncOptions {
      * @default info
      */
     loglevel?: 'silly' | 'verbose' | 'info' | 'silent';
+
+    /**
+     * A (file) => void hook that runs after a file is copied.
+     * @default identify
+     */
+    aftercp?: boolean | ((source: string) => void);    
 }
 
 /**
