@@ -25,15 +25,16 @@ module.exports = (options = false) => {
         manifest = false,
         transform = false,
         verbose = false,
+        aftercp = false,
     } = options;
 
-    if(!globs) {
+    if (!globs) {
         throw new Error("Must provide { globs : [] } to rollup-plugin-globsync");
     }
 
     const {
-        module : assetsmodule = manifest,
-        file : assetsfile = false,
+        module: assetsmodule = manifest,
+        file: assetsfile = false,
     } = manifest;
 
     log.level = verbose ? "verbose" : loglevel;
@@ -44,7 +45,7 @@ module.exports = (options = false) => {
     let watcherReady;
 
     const transformed = (file) => {
-        if(files.has(file)) {
+        if (files.has(file)) {
             return files.get(file);
         }
 
@@ -68,6 +69,8 @@ module.exports = (options = false) => {
         await del(tgt);
 
         await cp(path.join(dir, item), tgt);
+
+        if (aftercp) await aftercp(tgt);
 
         log.verbose("copy", `Copied ${tgt} in ${stop(timer)}`);
     };
@@ -116,23 +119,23 @@ module.exports = (options = false) => {
     }, null, 4)}`);
 
     return {
-        name : "globsync",
+        name: "globsync",
 
         async buildStart() {
             // Only want to run this setup once at buildStart
             /* istanbul ignore next */
-            if(runs++) {
+            if (runs++) {
                 return;
             }
 
             files = new Map();
 
-            if(clean) {
+            if (clean) {
                 marky.mark("cleaning");
 
                 let toClean = slash(dest);
 
-                if(Array.isArray(clean)) {
+                if (Array.isArray(clean)) {
                     toClean = clean
                         // flatten one level deep
                         .flat()
@@ -143,7 +146,7 @@ module.exports = (options = false) => {
                 }
 
                 await del(toClean, {
-                    cwd : dest,
+                    cwd: dest,
                 });
 
                 log.verbose("clean", `Cleaning destination took ${stop("cleaning")}`);
@@ -154,7 +157,7 @@ module.exports = (options = false) => {
             marky.mark("watcher setup");
 
             watcher = chokidar.watch(patterns, {
-                cwd : dir,
+                cwd: dir,
             });
 
             // Added or changed files/dirs
@@ -197,32 +200,32 @@ module.exports = (options = false) => {
         },
 
         async load(id) {
-            if(id !== assetsmodule) {
+            if (id !== assetsmodule) {
                 return null;
             }
 
             await watcherReady;
 
-            return `export default new Map(${JSON.stringify([ ...files.entries() ])})`;
+            return `export default new Map(${JSON.stringify([...files.entries()])})`;
         },
 
         async buildEnd(error) {
-            if(error || !assetsfile) {
+            if (error || !assetsfile) {
                 return;
             }
 
             await watcherReady;
 
-            const output = { __proto__ : null };
+            const output = { __proto__: null };
 
             files.forEach((out, src) => {
                 output[src] = out;
             });
 
             this.emitFile({
-                type     : "asset",
-                source   : JSON.stringify(output, null, 4),
-                fileName : assetsfile,
+                type: "asset",
+                source: JSON.stringify(output, null, 4),
+                fileName: assetsfile,
             });
         },
 
